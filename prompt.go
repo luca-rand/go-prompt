@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"time"
 
@@ -44,6 +45,11 @@ type Exec struct {
 
 // Run starts prompt.
 func (p *Prompt) Run() {
+	p.RunCtx(context.Background())
+}
+
+// RunCtx starts prompt with a context.
+func (p *Prompt) RunCtx(ctx context.Context) {
 	p.skipTearDown = false
 	defer debug.Teardown()
 	debug.Log("start prompt")
@@ -106,6 +112,10 @@ func (p *Prompt) Run() {
 			p.renderer.BreakLine(p.buf)
 			p.tearDown()
 			os.Exit(code)
+		case <-ctx.Done():
+			stopReadBufCh <- struct{}{}
+			stopHandleSignalCh <- struct{}{}
+			return
 		default:
 			time.Sleep(10 * time.Millisecond)
 		}
